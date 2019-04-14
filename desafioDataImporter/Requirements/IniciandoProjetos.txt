@@ -1,0 +1,24 @@
+# Abrir o CMD para criacao do ambiente de trabalho
+
+# Criar o ambiente usando CONDA
+conda create --name desafioDataImport python=3.6
+
+# Ativar o ambiente para modificacoes futuras
+conda activate desafioDataImport
+
+# Preparar o ambiente virtual para funcionar com SPYDER (sem o Anaconda Navigator)
+conda install spyder-kernels=0.*
+ou
+pip install spyder-kernels==0.*
+
+# Anotar o resultado listado abaixo para configurar o interpretador no SPYDER
+python -c "import sys; print(sys.executable)"
+
+# Instalar dependencias com PIP
+pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
+# Criar os arquivos para criacao do ambiente
+conda list --explicit > conda_requirements.txt
+pip freeze > pip_requirements.txt
+
+
