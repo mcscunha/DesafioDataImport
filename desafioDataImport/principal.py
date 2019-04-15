@@ -49,6 +49,7 @@
 
 import os
 import sys
+import csv
 from datetime import datetime
 from pprint import pprint
 from fun_google_api_sheets import SpreadSheetsGoogle
@@ -196,71 +197,99 @@ def alterarArquivoXml():
 
 
 def juntarTresArquivosEmCsv():
-    lstCsvResultado = []
-    lstTotalComDesconto = ['valor_com_desconto']
     
     # Carregando os dados em memoria
     #
+    #lstLinhasSheetUsu = ['LIBERAR', 'CARREGAMENTO', 'DA', 'LISTA']
+    #lstLinhasSheetDep = ['LIBERAR', 'CARREGAMENTO', 'DA', 'LISTA']
     lstLinhasSheetUsu = recuperarConteudoSpreadSheet(SPREADSHEET_ID, RANGE)
     lstLinhasCsv = recuperarConteudoCsv(ARQCSV)
     lstLinhasXml = recuperarConteudoXml(ARQXML, 'record')
     RANGE_DEP = 'dependentes!A1:D18'
     lstLinhasSheetDep = recuperarConteudoSpreadSheet(SPREADSHEET_ID, RANGE_DEP)
+    lstTotalComDesconto = []
+    
+    # Eliminar o cabecalho das colunas, este cabecalho será definido no fim
+    #
+    lstLinhasSheetUsu.pop(0)
+    lstLinhasCsv.pop(0)
+    lstLinhasXml.pop(0)
+    lstLinhasSheetDep.pop(0)
     
     # Alterando os dados
     #    
-    '''
     for idx, linha in enumerate(lstLinhasSheetUsu):
-        if idx > 0:   # ignorar a linha de cabecalho
-            lstLinhasSheetUsu[idx][3] = corrigirTelefone(linha[3])
-            lstLinhasSheetUsu[idx][4] = corrigirValor(linha[4])
-            lstTotalComDesconto.append(calcularValorTotalComDesconto(
-                    lstLinhasSheetUsu[idx][4], lstLinhasSheetUsu[idx][5]))
-    '''        
+        lstLinhasSheetUsu[idx][3] = corrigirTelefone(linha[3])
+        lstLinhasSheetUsu[idx][4] = corrigirValor(linha[4])
+        lstTotalComDesconto.append(calcularValorTotalComDesconto(
+                lstLinhasSheetUsu[idx][4], lstLinhasSheetUsu[idx][5]))
+
     for idx, linha in enumerate(lstLinhasCsv):
-        if idx > 0:   # ignorar a linha de cabecalho
-            lstLinhasCsv[idx][3] = corrigirTelefone(linha[3])
-            lstTotalComDesconto.append(calcularValorTotalComDesconto(
-                    lstLinhasCsv[idx][4], lstLinhasCsv[idx][5]))
+        lstLinhasCsv[idx][3] = corrigirTelefone(linha[3])
+        lstTotalComDesconto.append(calcularValorTotalComDesconto(
+                lstLinhasCsv[idx][4], lstLinhasCsv[idx][5]))
 
     for idx, linha in enumerate(lstLinhasXml):
-        if idx > 0:   # ignorar a linha de cabecalho
-            lstLinhasXml[idx][3] = corrigirTelefone(str(linha[3]))
-            lstTotalComDesconto.append(calcularValorTotalComDesconto(
-                    lstLinhasXml[idx][3], '0'))
-                    
-    for idx, linha in enumerate(lstLinhasSheetDep):
-        if idx > 0:   # ignorar a linha de cabecalho
-            if len(linha) == 4: 
-                datahora = lstLinhasSheetDep[idx][3]
-                datahora = datetime.strptime(datahora, '%d/%m/%Y %H:%M:%S')
-                lstLinhasSheetDep[idx][3] = datetime.strftime(
-                        datahora, '%d/%m/%Y %H:%M:%S')
-            else:
-                lstLinhasSheetDep[idx].append('')
+        lstLinhasXml[idx][3] = corrigirTelefone(str(linha[3]))
+        lstTotalComDesconto.append(calcularValorTotalComDesconto(
+                lstLinhasXml[idx][3], '0'))
                 
-        
+    for idx, linha in enumerate(lstLinhasSheetDep):
+        if len(linha) == 4: 
+            datahora = lstLinhasSheetDep[idx][3]
+            datahora = datetime.strptime(datahora, '%d/%m/%Y %H:%M:%S')
+            lstLinhasSheetDep[idx][3] = datetime.strftime(
+                    datahora, '%d/%m/%Y %H:%M:%S')
+        else:
+            lstLinhasSheetDep[idx].append('')
+                
+    
     # Unindo as listas
     #
-    conjListasUtilizadas = [lstLinhasSheetUsu,
-                            lstLinhasCsv,
-                            lstLinhasXml,
-                            lstLinhasSheetDep,
-                            ]
-    lstCsvResultado.extend(conjListasUtilizadas)
+    lstListasJuntas = []
+    lstListasJuntas.extend( [lstLinhasSheetUsu, lstLinhasCsv,lstLinhasXml] )
     
-    with os.open('csv_resultado.csv', 'w') as csv_file:
-        csv_file.write(lstCsvResultado, delimiter=';')
-        print('Arquivo criado com sucesso!')
+    # #######################################################
+    # CUIDADO: 
+    #   A sequencia de insercao da coluna VALOR_COM_DESCONTO
+    #    deve ser a mesma quando esta foi calculada (passo acima)
+    # #######################################################
+    # Acrescentar a coluna VALOR_COM_DESCONTO
+    #
+    # Sheet: id       , nome    , email       , telefone    , valor        , desconto 
+    # CSV  : client_id, username, email_client, phone_client, product_value, discount
+    # XML  : user_id  , name    , email_user  , phone       , buy_value
     
-    #lstCsvResultado = unirListasEmArquivoCsv(conjListasUtilizadas)
-
+    lstResFinal = ['id', 'nome', 'email', 'telefone', 'valor_total', 'valor_com_desconto']
+    for linha in lstListasJuntas[0]:
+        if idx > 0:
+            lstResFinal.append( [linha[0],
+                                 linha[1],
+                                 str.lower(linha[2]),
+                                 linha[3],
+                                 linha[4],
+                                 lstTotalComDesconto[idx]]
+                               )
+    pprint(lstResFinal)    
+    
     # Definindo o diretorio e nome do arquivo CSV a gravar
     #
 
-    # Gravando o arquivo CSV
-    #
 
+    # Gravando os arquivos CSV
+    #
+    with open('usuarios.csv', 'w', encoding='UTF-8', newline='') as csv_file:
+        file = csv.writer(csv_file, delimiter=';', quoting=csv.QUOTE_NONNUMERIC)
+        for linha in lstResFinal:
+            file.writerows(linha)
+        print('Arquivo USUARIO.CSV criado com sucesso!')
+    
+    with open('dependentes.csv', 'w', encoding='UTF-8', newline='') as csv_file:
+        file = csv.writer(csv_file, delimiter=';', quoting=csv.QUOTE_NONNUMERIC)
+        for linha in lstLinhasSheetDep:
+            file.writerows(linha)
+        print('Arquivo DEPENDENTES criado com sucesso!')
+    
 
 def menu():
     # Limpar a tela nao importando o SO
