@@ -38,7 +38,7 @@
 
 
 import xml.etree.ElementTree as ET
-import pprint
+
 
 class ArquivoXml():
     '''
@@ -53,10 +53,10 @@ class ArquivoXml():
         return tree.getroot()
 
 
-    def obterConteudoXml(self, xmlNoContendoDados, ):
+    def obterConteudoXml(self, xmlNoRaiz, strNoContendoDados):
         lstLinha = []
         lstValor = []
-        for dado in xmlNoContendoDados.findall('record'):
+        for dado in xmlNoRaiz.findall(strNoContendoDados):
             lstValor.append(dado.find('user_id').text)
             lstValor.append(dado.find('name').text)
             lstValor.append(dado.find('email_user').text)
@@ -64,68 +64,5 @@ class ArquivoXml():
             lstValor.append(dado.find('buy_value').text)
             lstLinha.append(lstValor[:])
             lstValor.clear()
+        return list(lstLinha)
         
-        
-        
-'''
-        
-# Testando arquivo XML
-ARQXML = 'dataApr-1-2019 2.xml'
-arqXml = ArquivoXml(ARQXML)
-root = arqXml.carregarXml()
-
-i = 0
-print('Tag Root:', root.tag)
-print('Atributo Root:', root.attrib)
-print('Texto Root:', root.text)
-print('Nos:',  )
-root.
-lstLinha = []
-lstValor = []
-vez = 0
-for dado in root.findall('record'):
-    lstValor.append(dado.find('user_id').text)
-    lstValor.append(dado.find('name').text)
-    lstValor.append(dado.find('email_user').text)
-    lstValor.append(dado.find('phone').text)
-    lstValor.append(dado.find('buy_value').text)
-    lstLinha.append(lstValor[:])
-    lstValor.clear()
-pprint.pprint(lstLinha)        
-'''
-
-'''
-lstLinha = []
-lstValor = []
-lstValores = [(x.tag, x.text) for x in root.iter() 
-                        if (x.text != '\n\t\t') and (x.text != '\n\t')
-                        ]
-#print(lstValores)
-
-for dado in lstValores:
-    if (dado[0] == 'user_id') and (idx != 0):
-        lstLinha.append(lstValor) 
-        lstValor = []
-    else:
-        lstValor.append(dado)        
-
-#for linha in lstLinha:
-pprint.pprint(lstLinha)
-'''
-
-'''
-for ch in root.iter():
-    print('Tag Pai:', ch.tag)
-    #print('Atributo Pai:', ch.attrib)
-    print('Texto Pai:', ch.text)
-
-    for gr in ch:
-        print('Tag Filho:', gr.tag)
-        print('Atributo Filho:', gr.attrib)
-        print('Texto Filho:', gr.text)
-
-    i += 1
-    #print('Iteração: ', i)
-    if i > 10:
-        break
-'''
