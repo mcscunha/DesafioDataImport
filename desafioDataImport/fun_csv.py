@@ -29,4 +29,4 @@ class ArquivoCsv():
             Acessar o arquivo CSV e disponibilizar o conteudo em uma LISTA
         '''
         with open(self.strArqCsv, mode='r') as csv_file:
-            linhas = list(csv.reader(csv_file, delimiter=self.strDelimitador))
+            return list(csv.reader(csv_file, delimiter=self.strDelimitador))

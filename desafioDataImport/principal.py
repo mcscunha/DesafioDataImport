@@ -49,11 +49,14 @@
 
 import os
 import sys
+import csv
+from datetime import datetime
 from pprint import pprint
 from fun_google_api_sheets import SpreadSheetsGoogle
 from fun_csv import ArquivoCsv
 from fun_xml import ArquivoXml
-from fun_geral import verificarExistenciaArquivo
+from fun_geral import verificarExistenciaArquivo, corrigirTelefone
+from fun_geral import corrigirValor, calcularValorTotalComDesconto
 
 # Se modificar o SCOPO, deve-se deletar o arquivo token.pickle
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
@@ -104,14 +107,14 @@ def exibirConteudoSpreadSheet():
         print('{0}'.format(row))
 
 
-def recuperarConteudoCsv():
+def recuperarConteudoCsv(strArquivoCsv):
     '''
         Acessar o conteudo do arquivo CSV e enviar para memoria
     '''
     lstLinhasCsv = None
 
-    if verificarExistenciaArquivo(ArquivoCsv):
-        arqCsv = ArquivoCsv(ARQCSV, ';')
+    if verificarExistenciaArquivo(strArquivoCsv):
+        arqCsv = ArquivoCsv(strArquivoCsv, ';')
         lstLinhasCsv = arqCsv.obterConteudoCsv()
     else:
         print('Arquivo não encontrado OU com erro ao abrir, talvez encoding')
@@ -122,7 +125,7 @@ def exibirConteudoCSV():
     '''
         Exibir o conteudo do arquivo CSV na tela
     '''
-    lstLinhas = recuperarConteudoCsv()
+    lstLinhas = recuperarConteudoCsv(ARQCSV)
     if lstLinhas:
         line_count = 0
         for row in lstLinhas:
@@ -135,15 +138,16 @@ def exibirConteudoCSV():
         print('Linhas processadas: {}'.format(line_count))
 
 
-def recuperarConteudoXml():
+def recuperarConteudoXml(strArquivoXml, strNoComDados):
     '''
         Acessar o conteudo do arquivo XML e enviar para memoria
     '''
     lstLinhasXml = None
 
-    if verificarExistenciaArquivo(ARQXML):
-        arqXml = ArquivoXml(ARQXML)
-        lstLinhasXml = arqXml.carregarXml()
+    if verificarExistenciaArquivo(strArquivoXml):
+        arqXml = ArquivoXml(strArquivoXml)  # Criar classe
+        xmlNoRaiz = arqXml.carregarXml()    # Abrir o arquivo
+        lstLinhasXml = arqXml.obterConteudoXml(xmlNoRaiz, strNoComDados) # Por dados na memoria
     else:
         print('Arquivo XML não encontrado.')
 
@@ -154,23 +158,8 @@ def exibirConteudoXML():
     '''
         Exibir o conteudo do XML em linhas, mais facil de conferir o conteudo
     '''
-    lstLinhas = recuperarConteudoXml()
-    if lstLinhas:
-        lstLinha = []
-        lstValor = []
-        
-        # Conhecendo a estrutura do arquivo XML...
-        for dado in lstLinhas.findall('record'):
-            lstValor.append(dado.find('user_id').text)
-            lstValor.append(dado.find('name').text)
-            lstValor.append(dado.find('email_user').text)
-            lstValor.append(dado.find('phone').text)
-            lstValor.append(dado.find('buy_value').text)
-            
-            lstLinha.append(lstValor[:])
-            lstValor.clear()
-        
-        pprint(lstLinha)
+    lstLinhas = recuperarConteudoXml(ARQXML, 'record')
+    pprint(lstLinhas)
 
 
 def alterarArquivoSpreadSheet():
@@ -208,59 +197,99 @@ def alterarArquivoXml():
 
 
 def juntarTresArquivosEmCsv():
-    lstCsvResultado = []
-    lstTotalComDesconto = ['valor_com_desconto']
     
+    # Carregando os dados em memoria
+    #
+    #lstLinhasSheetUsu = ['LIBERAR', 'CARREGAMENTO', 'DA', 'LISTA']
+    #lstLinhasSheetDep = ['LIBERAR', 'CARREGAMENTO', 'DA', 'LISTA']
     lstLinhasSheetUsu = recuperarConteudoSpreadSheet(SPREADSHEET_ID, RANGE)
-    RANGE = 'dependentes!A1:D18'
-    lstLinhasSheetDep = recuperarConteudoSpreadSheet(SPREADSHEET_ID, RANGE)
+    lstLinhasCsv = recuperarConteudoCsv(ARQCSV)
+    lstLinhasXml = recuperarConteudoXml(ARQXML, 'record')
+    RANGE_DEP = 'dependentes!A1:D18'
+    lstLinhasSheetDep = recuperarConteudoSpreadSheet(SPREADSHEET_ID, RANGE_DEP)
+    lstTotalComDesconto = []
     
+    # Eliminar o cabecalho das colunas, este cabecalho será definido no fim
+    #
+    lstLinhasSheetUsu.pop(0)
+    lstLinhasCsv.pop(0)
+    lstLinhasXml.pop(0)
+    lstLinhasSheetDep.pop(0)
+    
+    # Alterando os dados
+    #    
     for idx, linha in enumerate(lstLinhasSheetUsu):
+        lstLinhasSheetUsu[idx][3] = corrigirTelefone(linha[3])
+        lstLinhasSheetUsu[idx][4] = corrigirValor(linha[4])
+        lstTotalComDesconto.append(calcularValorTotalComDesconto(
+                lstLinhasSheetUsu[idx][4], lstLinhasSheetUsu[idx][5]))
 
-        #
-        # Correcao nos telefones da planilha do GoogleDocs
-        #
-        if idx > 0:   # ignorar a linha de cabecalho
-            telefone = linha[3]
-            for carac in ('(', ')', ' ', '-'):
-                telefone = telefone.replace(carac, '')
-            if len(telefone) < 12:
-                lstLinhasSheetUsu[idx][3] = '+55{}{}'.format(telefone[:2],
-                              telefone[2:]) if len(telefone) > 0 else ''
-            else:
-                lstLinhasSheetUsu[idx][3]= '+{}'.format(telefone[:])
-        
-            #
-            # Correcao da coluna VALOR - Formatado como dinheiro
-            #
-            valor = linha[4]
-            #for carac in ('R$',):
-            valor = valor.replace('R$', '')
-            valor = valor.replace(',', '.')
-            lstLinhasSheetUsu[idx][4] = '{:.2f}'.format(float(valor))
+    for idx, linha in enumerate(lstLinhasCsv):
+        lstLinhasCsv[idx][3] = corrigirTelefone(linha[3])
+        lstTotalComDesconto.append(calcularValorTotalComDesconto(
+                lstLinhasCsv[idx][4], lstLinhasCsv[idx][5]))
 
-            #
-            # Adicao da coluna (Valor_Total - Desconto)
-            #
-            desconto = linha[5]
-            desconto = desconto.replace('-', '0')
-            valorTotalDesc = float(lstLinhasSheetUsu[idx][4]) * (1 - (float(desconto)/100))
-            lstTotalComDesconto.append('{:.2f}'.format(valorTotalDesc))
-            print('{:.2f}'.format(valorTotalDesc))
-            
-
-    #
-    # Trabalhando na segunda aba (dependentes)
-    #
+    for idx, linha in enumerate(lstLinhasXml):
+        lstLinhasXml[idx][3] = corrigirTelefone(str(linha[3]))
+        lstTotalComDesconto.append(calcularValorTotalComDesconto(
+                lstLinhasXml[idx][3], '0'))
+                
     for idx, linha in enumerate(lstLinhasSheetDep):
-
-        if idx > 0:   # ignorar a linha de cabecalho
-            
-        
-        
-    pprint(lstLinhasSheetUsu)
+        if len(linha) == 4: 
+            datahora = lstLinhasSheetDep[idx][3]
+            datahora = datetime.strptime(datahora, '%d/%m/%Y %H:%M:%S')
+            lstLinhasSheetDep[idx][3] = datetime.strftime(
+                    datahora, '%d/%m/%Y %H:%M:%S')
+        else:
+            lstLinhasSheetDep[idx].append('')
+                
     
+    # Unindo as listas
+    #
+    lstListasJuntas = []
+    lstListasJuntas.extend( [lstLinhasSheetUsu, lstLinhasCsv,lstLinhasXml] )
+    
+    # #######################################################
+    # CUIDADO: 
+    #   A sequencia de insercao da coluna VALOR_COM_DESCONTO
+    #    deve ser a mesma quando esta foi calculada (passo acima)
+    # #######################################################
+    # Acrescentar a coluna VALOR_COM_DESCONTO
+    #
+    # Sheet: id       , nome    , email       , telefone    , valor        , desconto 
+    # CSV  : client_id, username, email_client, phone_client, product_value, discount
+    # XML  : user_id  , name    , email_user  , phone       , buy_value
+    
+    lstResFinal = ['id', 'nome', 'email', 'telefone', 'valor_total', 'valor_com_desconto']
+    for linha in lstListasJuntas[0]:
+        if idx > 0:
+            lstResFinal.append( [linha[0],
+                                 linha[1],
+                                 str.lower(linha[2]),
+                                 linha[3],
+                                 linha[4],
+                                 lstTotalComDesconto[idx]]
+                               )
+    pprint(lstResFinal)    
+    
+    # Definindo o diretorio e nome do arquivo CSV a gravar
+    #
 
+
+    # Gravando os arquivos CSV
+    #
+    with open('usuarios.csv', 'w', encoding='UTF-8', newline='') as csv_file:
+        file = csv.writer(csv_file, delimiter=';', quoting=csv.QUOTE_NONNUMERIC)
+        for linha in lstResFinal:
+            file.writerows(linha)
+        print('Arquivo USUARIO.CSV criado com sucesso!')
+    
+    with open('dependentes.csv', 'w', encoding='UTF-8', newline='') as csv_file:
+        file = csv.writer(csv_file, delimiter=';', quoting=csv.QUOTE_NONNUMERIC)
+        for linha in lstLinhasSheetDep:
+            file.writerows(linha)
+        print('Arquivo DEPENDENTES criado com sucesso!')
+    
 
 def menu():
     # Limpar a tela nao importando o SO
