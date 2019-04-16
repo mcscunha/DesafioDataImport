@@ -200,8 +200,12 @@ def juntarTresArquivosEmCsv():
     
     # Carregando os dados em memoria
     #
-    #lstLinhasSheetUsu = ['LIBERAR', 'CARREGAMENTO', 'DA', 'LISTA']
-    #lstLinhasSheetDep = ['LIBERAR', 'CARREGAMENTO', 'DA', 'LISTA']
+    '''
+    lstLinhasSheetUsu = [ ['LIBERAR', 'CARREGAMENTO', 'DA', 'LISTA', 'CINCO', 'SEIS'],
+                          ['AAA', 'BBB', 'CCC', 'DDD', '5', '10'] ]
+    lstLinhasSheetDep = [ ['LIBERAR', 'CARREGAMENTO', 'DA', 'LISTA'],
+                          ['111', '222', '333', '444', '555', ''] ]
+    '''
     lstLinhasSheetUsu = recuperarConteudoSpreadSheet(SPREADSHEET_ID, RANGE)
     lstLinhasCsv = recuperarConteudoCsv(ARQCSV)
     lstLinhasXml = recuperarConteudoXml(ARQXML, 'record')
@@ -223,7 +227,7 @@ def juntarTresArquivosEmCsv():
         lstLinhasSheetUsu[idx][4] = corrigirValor(linha[4])
         lstTotalComDesconto.append(calcularValorTotalComDesconto(
                 lstLinhasSheetUsu[idx][4], lstLinhasSheetUsu[idx][5]))
-
+    
     for idx, linha in enumerate(lstLinhasCsv):
         lstLinhasCsv[idx][3] = corrigirTelefone(linha[3])
         lstTotalComDesconto.append(calcularValorTotalComDesconto(
@@ -243,12 +247,18 @@ def juntarTresArquivosEmCsv():
         else:
             lstLinhasSheetDep[idx].append('')
                 
-    
+    pprint(lstTotalComDesconto)
     # Unindo as listas
     #
     lstListasJuntas = []
-    lstListasJuntas.extend( [lstLinhasSheetUsu, lstLinhasCsv,lstLinhasXml] )
+    for idx, linha in enumerate(lstLinhasSheetUsu):
+        lstListasJuntas.append(linha + lstTotalComDesconto[idx].split())
+        print(lstListasJuntas[idx], ' == ', lstTotalComDesconto[idx].split())
+        print('--------->>> ', linha)
+    print('<<<<<<<<<<<<<<<<<<<< >>>>>>>>>>>>>>>>>>>>>>')
+    pprint(lstListasJuntas)
     
+    sys.exit(0)
     # #######################################################
     # CUIDADO: 
     #   A sequencia de insercao da coluna VALOR_COM_DESCONTO
@@ -259,18 +269,18 @@ def juntarTresArquivosEmCsv():
     # Sheet: id       , nome    , email       , telefone    , valor        , desconto 
     # CSV  : client_id, username, email_client, phone_client, product_value, discount
     # XML  : user_id  , name    , email_user  , phone       , buy_value
+    for linha in lstListasJuntas:
+        print( [linha[0], linha[1], linha[2], linha[3], linha[4], lstTotalComDesconto[idx]] )
     
-    lstResFinal = ['id', 'nome', 'email', 'telefone', 'valor_total', 'valor_com_desconto']
-    for linha in lstListasJuntas[0]:
-        if idx > 0:
-            lstResFinal.append( [linha[0],
-                                 linha[1],
-                                 str.lower(linha[2]),
-                                 linha[3],
-                                 linha[4],
-                                 lstTotalComDesconto[idx]]
-                               )
+    lstResFinal.append( [linha[0],
+                             linha[1],
+                             str.lower(str(linha[2])),
+                             linha[3],
+                             linha[4],
+                             lstTotalComDesconto[idx]]
+                           )
     pprint(lstResFinal)    
+    #lstResFinal = ['id', 'nome', 'email', 'telefone', 'valor_total', 'valor_com_desconto']
     
     # Definindo o diretorio e nome do arquivo CSV a gravar
     #
@@ -289,7 +299,7 @@ def juntarTresArquivosEmCsv():
         for linha in lstLinhasSheetDep:
             file.writerows(linha)
         print('Arquivo DEPENDENTES criado com sucesso!')
-    
+
 
 def menu():
     # Limpar a tela nao importando o SO
@@ -312,37 +322,37 @@ def menu():
     print('[ 0 ] Sair do sistema')
     print('')
 
-    try:
-        op = int(input('Qual opção deseja executar?\n'))
+#    try:
+    op = int(input('Qual opção deseja executar?\n'))
 
-        while True:
-            if op == 0:
-                break
-            elif op == 1:
-                exibirConteudoSpreadSheet()
-            elif op == 2:
-                exibirConteudoCSV()
-            elif op == 3:
-                exibirConteudoXML()
-            elif op == 4:
-                alterarArquivoSpreadSheet()
-            elif op == 5:
-                alterarArquivoCsv()
-            elif op == 6:
-                alterarArquivoXml()
-            elif op == 7:
-                juntarTresArquivosEmCsv()
-            else:
-                print("Por favor, somente numeros entre 0 e 8. Tente novamente\n")
-            
-            input('\nTecle [ENTER] para continuar...')
-            menu()
+    while True:
+        if op == 0:
+            break
+        elif op == 1:
+            exibirConteudoSpreadSheet()
+        elif op == 2:
+            exibirConteudoCSV()
+        elif op == 3:
+            exibirConteudoXML()
+        elif op == 4:
+            alterarArquivoSpreadSheet()
+        elif op == 5:
+            alterarArquivoCsv()
+        elif op == 6:
+            alterarArquivoXml()
+        elif op == 7:
+            juntarTresArquivosEmCsv()
+        else:
+            print("Por favor, somente numeros entre 0 e 8. Tente novamente\n")
+        
+        input('\nTecle [ENTER] para continuar...')
+        menu()
 
 
-    except ValueError:
-        print("Isso não é um número OU houve um erro na rotina chamada.\n")
-        input('\n')
-        menu()    
+#    except ValueError:
+#        print("Isso não é um número OU houve um erro na rotina chamada.\n")
+#        input('\n')
+#        menu()    
     
 
     print('Encerrando o sistema... OK')
