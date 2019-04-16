@@ -260,14 +260,26 @@ def juntarTresArquivosEmCsv():
                 
     #
     # Resultado das 3 fontes acima:
-    #
-    # Sheet: id       , nome    , email       , telefone    , valor        , desconto, valor_total
-    # CSV  : client_id, username, email_client, phone_client, product_value, discount, valor_total
-    # XML  : user_id  , name    , email_user  , phone       , buy_value    , 0       , valor_total
-    #
-    # Saida do arquivo: usuario.csv
-    # id, nome, email, telefone, valor_total, valor_com_desconto
-    #
+    # -------------------------------------------------------------------------------------------------
+    # ID        : 0        , 1       , 2           , 3           , 4            , 5       , 6
+    # -------------------------------------------------------------------------------------------------
+    # Sheet     : id       , nome    , email       , telefone    , valor        , desconto, valor_total
+    # CSV       : client_id, username, email_client, phone_client, product_value, discount, valor_total
+    # XML       : user_id  , name    , email_user  , phone       , buy_value    , 0       , valor_total
+    # -------------------------------------------------------------------------------------------------
+    # CSVsaida  : id       , nome    , email       , telefone    , valor_total  , valor_com_desconto
+    # -------------------------------------------------------------------------------------------------
+    lstComValorTotal.insert(0, ['id',
+                                'nome',
+                                'email',
+                                'telefone',
+                                'valor_total',
+                                'COL_APAGAR',   # Apenas para facilitar abaixo
+                                'valor_com_desconto'])
+    lstLinhasSheetDep.insert(0, ['id',
+                                 'usuario_id',
+                                 'dependente_de_id'
+                                 'data'])
     
     # Gravando os arquivos CSV
     #
@@ -275,14 +287,14 @@ def juntarTresArquivosEmCsv():
         file = csv.writer(csv_file, delimiter=';', quoting=csv.QUOTE_NONNUMERIC)
         #file.writerows(lstComValorTotal)
         for linha in lstComValorTotal:
-            print([ linha[0] + linha[1] + linha[2] + linha[3] + linha[4] + linha[6] ])
-            file.writerows( [ linha[0] + linha[1] + linha[2] + linha[3] + linha[4] + linha[6] ] )
+            linha.pop(5)
+            file. writerows( [linha] )
         print('Arquivo USUARIO.CSV criado com sucesso!')
     
     with open('dependentes.csv', 'w', encoding='UTF-8', newline='') as csv_file:
         file = csv.writer(csv_file, delimiter=';', quoting=csv.QUOTE_NONNUMERIC)
         for linha in lstLinhasSheetDep:
-            file.writerows(linha)
+            file.writerows( [linha] )
         print('Arquivo DEPENDENTES criado com sucesso!')
 
 
