@@ -28,8 +28,10 @@ def corrigirTelefone(strTelefone):
     for carac in ('(', ')', ' ', '-'):
         strTelefone = strTelefone.replace(carac, '')
     if len(strTelefone) < 12:
-        telefone = '+55{}{}'.format(strTelefone[:2],
-                      strTelefone[2:]) if len(strTelefone) > 0 else ''
+        if len(strTelefone) > 0:
+            telefone = '+55{}{}'.format(strTelefone[:2], strTelefone[2:])
+        else:
+            telefone = ''
     else:
         telefone = '+{}'.format(strTelefone[:])
     
@@ -38,22 +40,27 @@ def corrigirTelefone(strTelefone):
 
 def corrigirValor(strValor):
     '''
-    Correcao da coluna VALOR - Formatado como dinheiro
-    Formato Final: 250.00
+        Correcao dos numeros floats passados como STRING para a funcao, devolvendo
+    como uma STRING formatada com duas casas decimais e ponto como separador
+        Elimina alguns caracteres literais invalidos, troca virgula por ponto e
+    formata com duas casas decimais
+        Formato Final: "250.00"
     '''
-    for carac in ('R$',):
+    for carac in ('R$', '-'):
         strValor = strValor.replace(carac, '')
+        
     valor = strValor.replace(',', '.')
-    return '{:.2f}'.format(float(valor))
+    return '{:.2f}'.format(float(valor) if valor != '' else 0)
 
 
 def calcularValorTotalComDesconto(strValor, strDesconto):
     '''
-    Adicao da coluna Valor Total Com Desconto
+    Calcula a coluna Valor_Total_Com_Desconto
     Formato Final: Valor_Total * (1 - (Desconto/100))
     '''
-    strDesconto = strDesconto.replace('-', '0')
-    strDesconto = strDesconto.replace('', '0')
-    valorTotalDesc = float(strValor) * (1 - (float(strDesconto)/100))
-    return '{:.2f}'.format(valorTotalDesc)
+    if strDesconto == '':
+        strDesconto = 0
+    else:
+        strDesconto = corrigirValor(strDesconto)
+    return '{:.2f}'.format(float(strValor) * (1 - (float(strDesconto)/100)))
     

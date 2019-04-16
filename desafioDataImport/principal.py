@@ -221,22 +221,34 @@ def juntarTresArquivosEmCsv():
     lstLinhasSheetDep.pop(0)
     
     # Alterando os dados
-    #    
+    #  
+    lstComValorTotal = []
     for idx, linha in enumerate(lstLinhasSheetUsu):
         lstLinhasSheetUsu[idx][3] = corrigirTelefone(linha[3])
         lstLinhasSheetUsu[idx][4] = corrigirValor(linha[4])
-        lstTotalComDesconto.append(calcularValorTotalComDesconto(
-                lstLinhasSheetUsu[idx][4], lstLinhasSheetUsu[idx][5]))
-    
+        # CURIOSIDADE
+        #
+        # a = 3.456    (a   = tipo float)
+        # b = list(a)  (ERRO: Float object is not iterable)
+        # b = [a]      (OK  : Neste caso, é dado um "APPEND" em uma lista 
+        #                     vazia. Por isso a variavel VTCD abaixo é 
+        #                     calculada separada e depois acrescentada dentro
+        #                     de uma lista no APPEND)
+        #                     
+        vtcd = calcularValorTotalComDesconto(
+                lstLinhasSheetUsu[idx][4], lstLinhasSheetUsu[idx][5])
+        lstComValorTotal.append(linha + [vtcd])
+
     for idx, linha in enumerate(lstLinhasCsv):
         lstLinhasCsv[idx][3] = corrigirTelefone(linha[3])
-        lstTotalComDesconto.append(calcularValorTotalComDesconto(
-                lstLinhasCsv[idx][4], lstLinhasCsv[idx][5]))
+        vtcd = calcularValorTotalComDesconto(
+                lstLinhasCsv[idx][4], lstLinhasCsv[idx][5])
+        lstComValorTotal.append(linha + [vtcd])
 
     for idx, linha in enumerate(lstLinhasXml):
-        lstLinhasXml[idx][3] = corrigirTelefone(str(linha[3]))
-        lstTotalComDesconto.append(calcularValorTotalComDesconto(
-                lstLinhasXml[idx][3], '0'))
+        lstLinhasXml[idx][3] = corrigirTelefone(linha[3])
+        vtcd = calcularValorTotalComDesconto(lstLinhasXml[idx][4], '0')
+        lstComValorTotal.append(linha + [0] + [vtcd])
                 
     for idx, linha in enumerate(lstLinhasSheetDep):
         if len(linha) == 4: 
@@ -247,51 +259,25 @@ def juntarTresArquivosEmCsv():
         else:
             lstLinhasSheetDep[idx].append('')
                 
-    pprint(lstTotalComDesconto)
-    # Unindo as listas
     #
-    lstListasJuntas = []
-    for idx, linha in enumerate(lstLinhasSheetUsu):
-        lstListasJuntas.append(linha + lstTotalComDesconto[idx].split())
-        print(lstListasJuntas[idx], ' == ', lstTotalComDesconto[idx].split())
-        print('--------->>> ', linha)
-    print('<<<<<<<<<<<<<<<<<<<< >>>>>>>>>>>>>>>>>>>>>>')
-    pprint(lstListasJuntas)
-    
-    sys.exit(0)
-    # #######################################################
-    # CUIDADO: 
-    #   A sequencia de insercao da coluna VALOR_COM_DESCONTO
-    #    deve ser a mesma quando esta foi calculada (passo acima)
-    # #######################################################
-    # Acrescentar a coluna VALOR_COM_DESCONTO
+    # Resultado das 3 fontes acima:
     #
-    # Sheet: id       , nome    , email       , telefone    , valor        , desconto 
-    # CSV  : client_id, username, email_client, phone_client, product_value, discount
-    # XML  : user_id  , name    , email_user  , phone       , buy_value
-    for linha in lstListasJuntas:
-        print( [linha[0], linha[1], linha[2], linha[3], linha[4], lstTotalComDesconto[idx]] )
-    
-    lstResFinal.append( [linha[0],
-                             linha[1],
-                             str.lower(str(linha[2])),
-                             linha[3],
-                             linha[4],
-                             lstTotalComDesconto[idx]]
-                           )
-    pprint(lstResFinal)    
-    #lstResFinal = ['id', 'nome', 'email', 'telefone', 'valor_total', 'valor_com_desconto']
-    
-    # Definindo o diretorio e nome do arquivo CSV a gravar
+    # Sheet: id       , nome    , email       , telefone    , valor        , desconto, valor_total
+    # CSV  : client_id, username, email_client, phone_client, product_value, discount, valor_total
+    # XML  : user_id  , name    , email_user  , phone       , buy_value    , 0       , valor_total
     #
-
-
+    # Saida do arquivo: usuario.csv
+    # id, nome, email, telefone, valor_total, valor_com_desconto
+    #
+    
     # Gravando os arquivos CSV
     #
     with open('usuarios.csv', 'w', encoding='UTF-8', newline='') as csv_file:
         file = csv.writer(csv_file, delimiter=';', quoting=csv.QUOTE_NONNUMERIC)
-        for linha in lstResFinal:
-            file.writerows(linha)
+        #file.writerows(lstComValorTotal)
+        for linha in lstComValorTotal:
+            print([ linha[0] + linha[1] + linha[2] + linha[3] + linha[4] + linha[6] ])
+            file.writerows( [ linha[0] + linha[1] + linha[2] + linha[3] + linha[4] + linha[6] ] )
         print('Arquivo USUARIO.CSV criado com sucesso!')
     
     with open('dependentes.csv', 'w', encoding='UTF-8', newline='') as csv_file:

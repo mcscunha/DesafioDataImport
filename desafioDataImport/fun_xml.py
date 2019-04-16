@@ -54,7 +54,23 @@ class ArquivoXml():
 
 
     def obterConteudoXml(self, xmlNoRaiz, strNoContendoDados):
-        lstLinha = []
+        # Pegar o cabecalho dos campos
+        lstLinha = [ [cab.tag for cab in xmlNoRaiz.find(strNoContendoDados)] ]
+        # =====================================================================
+        #         '''
+        #             Poderia usar a forma abaixo para pegar todos os valores 
+        #         do XML e guardar em uma lista, mas nessa forma nao separa em
+        #         "linhas" para melhor controle dos dados no futuro
+        #         '''
+        #         lstTodosDados = [dado.find(tagname).text 
+        #                          for dado in root.findall('record') 
+        #                          for tagname in ( [cab.tag 
+        #                               for cab in xmlNoRaiz.find(
+        #                                    strNoContendoDados) ]
+        #                              )
+        #                          ]
+        #         lstValor = []
+        # =====================================================================
         lstValor = []
         for dado in xmlNoRaiz.findall(strNoContendoDados):
             lstValor.append(dado.find('user_id').text)
