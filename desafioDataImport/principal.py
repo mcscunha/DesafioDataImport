@@ -211,7 +211,6 @@ def juntarTresArquivosEmCsv():
     lstLinhasXml = recuperarConteudoXml(ARQXML, 'record')
     RANGE_DEP = 'dependentes!A1:D18'
     lstLinhasSheetDep = recuperarConteudoSpreadSheet(SPREADSHEET_ID, RANGE_DEP)
-    lstTotalComDesconto = []
     
     # Eliminar o cabecalho das colunas, este cabecalho será definido no fim
     #
