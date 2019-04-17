@@ -197,7 +197,9 @@ def alterarArquivoXml():
 
 
 def juntarTresArquivosEmCsv():
-    
+    from time import time
+    reaTempoInicial = time()
+
     # Carregando os dados em memoria
     #
     '''
@@ -211,6 +213,7 @@ def juntarTresArquivosEmCsv():
     lstLinhasXml = recuperarConteudoXml(ARQXML, 'record')
     RANGE_DEP = 'dependentes!A1:D18'
     lstLinhasSheetDep = recuperarConteudoSpreadSheet(SPREADSHEET_ID, RANGE_DEP)
+    print('[1 / 7] - Fonte de dados iniciais carregados... OK')
     
     # Eliminar o cabecalho das colunas, este cabecalho será definido no fim
     #
@@ -237,18 +240,24 @@ def juntarTresArquivosEmCsv():
         vtcd = calcularValorTotalComDesconto(
                 lstLinhasSheetUsu[idx][4], lstLinhasSheetUsu[idx][5])
         lstComValorTotal.append(linha + [vtcd])
-
+    
+    print('[2 / 7] - Correção dos dados da fonte Sheets... OK')
+    
     for idx, linha in enumerate(lstLinhasCsv):
         lstLinhasCsv[idx][3] = corrigirTelefone(linha[3])
         vtcd = calcularValorTotalComDesconto(
                 lstLinhasCsv[idx][4], lstLinhasCsv[idx][5])
         lstComValorTotal.append(linha + [vtcd])
+    
+    print('[3 / 7] - Correção dos dados da fonte CSV... OK')
 
     for idx, linha in enumerate(lstLinhasXml):
         lstLinhasXml[idx][3] = corrigirTelefone(linha[3])
         vtcd = calcularValorTotalComDesconto(lstLinhasXml[idx][4], '0')
         lstComValorTotal.append(linha + [0] + [vtcd])
                 
+    print('[4 / 7] - Correção dos dados da fonte XML... OK')
+
     for idx, linha in enumerate(lstLinhasSheetDep):
         if len(linha) == 4: 
             datahora = lstLinhasSheetDep[idx][3]
@@ -258,6 +267,8 @@ def juntarTresArquivosEmCsv():
         else:
             lstLinhasSheetDep[idx].append('')
                 
+    print('[5 / 7] - Correção dos dados da fonte Dependentes... OK')
+
     #
     # Resultado das 3 fontes acima:
     # -------------------------------------------------------------------------------------------------
@@ -278,25 +289,30 @@ def juntarTresArquivosEmCsv():
                                 'valor_com_desconto'])
     lstLinhasSheetDep.insert(0, ['id',
                                  'usuario_id',
-                                 'dependente_de_id'
+                                 'dependente_de_id',
                                  'data'])
     
     # Gravando os arquivos CSV
     #
     with open('usuarios.csv', 'w', encoding='UTF-8', newline='') as csv_file:
-        file = csv.writer(csv_file, delimiter=';', quoting=csv.QUOTE_NONNUMERIC)
+        file = csv.writer(csv_file, delimiter=';', quoting=csv.QUOTE_NONE)
         #file.writerows(lstComValorTotal)
         for linha in lstComValorTotal:
             linha.pop(5)
             file. writerows( [linha] )
-        print('Arquivo USUARIO.CSV criado com sucesso!')
+    
+    print('[6 / 7] - Gravação do arquivo de saida: ususarios.csv... OK')
     
     with open('dependentes.csv', 'w', encoding='UTF-8', newline='') as csv_file:
-        file = csv.writer(csv_file, delimiter=';', quoting=csv.QUOTE_NONNUMERIC)
+        file = csv.writer(csv_file, delimiter=';', quoting=csv.QUOTE_NONE)
         for linha in lstLinhasSheetDep:
             file.writerows( [linha] )
-        print('Arquivo DEPENDENTES criado com sucesso!')
+  
+    print('[7 / 7] - Gravação do arquivo de saida: dependentes.csv... OK')
 
+    reaTempoFinal = time()
+    print('\nTempo total de processamento: {:.3f} segundos'.format(
+            reaTempoFinal - reaTempoInicial))
 
 def menu():
     # Limpar a tela nao importando o SO
@@ -314,12 +330,10 @@ def menu():
     print('[ 6 ] Definir arquivo XML')
     print('')
     print('[ 7 ] Consolidar info das três fontes em arquivo CSV')
-    print('[ 8 ] Consolidar info das três fontes em arquivo CSV')
     print('')
     print('[ 0 ] Sair do sistema')
     print('')
 
-#    try:
     op = int(input('Qual opção deseja executar?\n'))
 
     while True:
@@ -340,17 +354,10 @@ def menu():
         elif op == 7:
             juntarTresArquivosEmCsv()
         else:
-            print("Por favor, somente numeros entre 0 e 8. Tente novamente\n")
+            print("Por favor, somente numeros entre 0 e 7. Tente novamente\n")
         
         input('\nTecle [ENTER] para continuar...')
         menu()
-
-
-#    except ValueError:
-#        print("Isso não é um número OU houve um erro na rotina chamada.\n")
-#        input('\n')
-#        menu()    
-    
 
     print('Encerrando o sistema... OK')
     # Usar o EXIT de SYS por causa de problemas com o console IPython
